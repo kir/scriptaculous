@@ -151,7 +151,7 @@ Autocompleter.Base = Class.create({
          return;
       }
      else
-       if(event.keyCode==Event.KEY_TAB || event.keyCode==Event.KEY_RETURN ||
+       if(event.keyCode==Event.KEY_TAB || event.keyCode==Event.KEY_RETURN || event.keyCode==Event.KEY_ESC ||
          (Prototype.Browser.WebKit > 0 && event.keyCode == 0)) return;
 
     this.changed = true;
@@ -209,9 +209,13 @@ Autocompleter.Base = Class.create({
   },
 
   markPrevious: function() {
-    if(this.index > 0) this.index--;
-      else this.index = this.entryCount-1;
-    this.getEntry(this.index).scrollIntoView(true);
+    if (this.index > 0) this.index--;
+    else this.index = this.entryCount - 1;
+
+    // Here we call with parameter false to avoid jumping
+    // when there is a scroll bar on the page.
+    // Original implementation passed true
+    this.getEntry(this.index).scrollIntoView(false);
   },
 
   markNext: function() {
@@ -493,7 +497,8 @@ Ajax.InPlaceEditor = Class.create({
       this.options.externalControl = $(this.options.externalControl);
     if (!this.options.externalControl)
       this.options.externalControlOnly = false;
-    this._originalBackground = this.element.getStyle('background-color') || 'transparent';
+    if (!this.options.skipBackgroundRestore)
+      this._originalBackground = this.element.getStyle('background-color') || 'transparent';
     this.element.title = this.options.clickToEditText;
     this._boundCancelHandler = this.handleFormCancellation.bind(this);
     this._boundComplete = (this.options.onComplete || Prototype.emptyFunction).bind(this);
@@ -648,7 +653,8 @@ Ajax.InPlaceEditor = Class.create({
     this.element.removeClassName(this.options.savingClassName);
     this.removeForm();
     this.leaveHover();
-    this.element.style.backgroundColor = this._originalBackground;
+    if (!this.options.skipBackgroundRestore)
+      this.element.style.backgroundColor = this._originalBackground;
     this.element.show();
     if (this.options.externalControl)
       this.options.externalControl.show();
@@ -723,7 +729,8 @@ Ajax.InPlaceEditor = Class.create({
     this._oldInnerHTML = this.element.innerHTML;
     this.element.innerHTML = this.options.savingText;
     this.element.addClassName(this.options.savingClassName);
-    this.element.style.backgroundColor = this._originalBackground;
+    if (!this.options.skipBackgroundRestore)
+      this.element.style.backgroundColor = this._originalBackground;
     this.element.show();
   },
   triggerCallback: function(cbName, arg) {
