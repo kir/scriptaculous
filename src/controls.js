@@ -85,8 +85,40 @@ Autocompleter.Base = Class.create({
 
     Element.hide(this.update);
 
-    Event.observe(this.element, 'blur', this.onBlur.bindAsEventListener(this));
-    Event.observe(this.element, 'keydown', this.onKeyPress.bindAsEventListener(this));
+    // container to track all event handlers
+    // elementId => { eventName: boundHandler, ... }
+    this._observers = $H();
+
+    this._observe(this.element, 'blur', this.onBlur);
+    this._observe(this.element, 'keydown', this.onKeyPress);
+  },
+
+  // Call this when you don't need the autocompleter anymore to remove
+  // remaining event handlers
+  dispose: function() {
+    this._observers.each(function(pair){
+      var element = $(pair.key);
+      if (element) {
+        for(var eventName in pair.value) {
+          element.stopObserving(eventName, pair.value[eventName]);
+        }
+      }
+    });
+    this._observers = $H();
+  },
+
+  // Observe element and remember handler in this._observers
+  _observe: function(element, eventName, handler) {
+    var id = element.identify();
+    var boundHandler = handler.bindAsEventListener(this);
+    $(element).observe(eventName, boundHandler);
+
+    var observers = this._observers.get(id);
+    if (!observers) {
+      observers = {};
+    }
+    observers[eventName] = boundHandler;
+    this._observers.set(id, observers);
   },
 
   show: function() {
@@ -112,6 +144,7 @@ Autocompleter.Base = Class.create({
 
   hide: function() {
     this.stopIndicator();
+    this._disposeListEventHandlers();
     if(Element.getStyle(this.update, 'display')!='none') this.options.onHide(this.element, this.update);
     if(this.iefix) Element.hide(this.iefix);
   },
@@ -268,6 +301,7 @@ Autocompleter.Base = Class.create({
 
   updateChoices: function(choices) {
     if(!this.changed && this.hasFocus) {
+      this._disposeListEventHandlers();
       this.update.innerHTML = choices;
       Element.cleanWhitespace(this.update);
       Element.cleanWhitespace(this.update.down());
@@ -296,9 +330,27 @@ Autocompleter.Base = Class.create({
     }
   },
 
+  _disposeListEventHandlers: function() {
+    if(this.update.firstChild && this.update.down().childNodes) {
+      var entryCount = this.update.down().childNodes.length;
+      for (var i = 0; i < entryCount; i++) {
+        var entry = this.getEntry(i);
+        this.removeObservers(entry);
+      }
+    }
+  },
+
   addObservers: function(element) {
-    Event.observe(element, "mouseover", this.onHover.bindAsEventListener(this));
-    Event.observe(element, "click", this.onClick.bindAsEventListener(this));
+    this._observe(element, "mouseover", this.onHover);
+    this._observe(element, "click", this.onClick);
+  },
+
+  removeObservers: function(element) {
+    element = $(element);
+    var observers = this._observers.unset(element.id);
+    for(var eventName in observers) {
+      $(element).stopObserving(eventName, observers[eventName]);
+    }
   },
 
   onObserverEvent: function() {
