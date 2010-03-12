@@ -97,27 +97,22 @@ Autocompleter.Base = Class.create({
   // remaining event handlers
   dispose: function() {
     this._observers.each(function(pair){
-      var element = $(pair.key);
-      if (element) {
-        for(var eventName in pair.value) {
-          element.stopObserving(eventName, pair.value[eventName]);
-        }
-      }
+      pair.value.invoke("apply");
     });
     this._observers = $H();
   },
 
   // Observe element and remember handler in this._observers
   _observe: function(element, eventName, handler) {
-    var id = element.identify();
+
     var boundHandler = handler.bindAsEventListener(this);
     $(element).observe(eventName, boundHandler);
 
-    var observers = this._observers.get(id);
-    if (!observers) {
-      observers = {};
-    }
-    observers[eventName] = boundHandler;
+    var id = element.identify();
+    var observers = this._observers.get(id) || [];
+    observers.push(function() {
+      element.stopObserving(eventName, boundHandler);
+    });
     this._observers.set(id, observers);
   },
 
@@ -347,10 +342,8 @@ Autocompleter.Base = Class.create({
 
   removeObservers: function(element) {
     element = $(element);
-    var observers = this._observers.unset(element.id);
-    for(var eventName in observers) {
-      $(element).stopObserving(eventName, observers[eventName]);
-    }
+    var observers = this._observers.unset(element.id) || [];
+    observers.invoke("apply");
   },
 
   onObserverEvent: function() {
