@@ -574,7 +574,7 @@ var SortableObserver = Class.create({
   initialize: function(element, observer) {
     this.element   = $(element);
     this.observer  = observer;
-    this.lastValue = Sortable.serialize(this.element);
+    // this.lastValue = Sortable.serialize(this.element);
   },
 
   onStart: function() {
