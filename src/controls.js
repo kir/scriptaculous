@@ -300,7 +300,7 @@ Autocompleter.Base = Class.create({
   },
 
   updateChoices: function(choices) {
-    if(!this.changed && this.hasFocus) {
+    if(!this.changed && this.hasFocus && this.update.innerHTML != choices) {
       this._disposeListEventHandlers();
       this.update.innerHTML = choices;
       Element.cleanWhitespace(this.update);
