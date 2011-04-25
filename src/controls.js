@@ -90,7 +90,8 @@ Autocompleter.Base = Class.create({
     this._observers = $H();
 
     this._observe(this.element, 'blur', this.onBlur);
-    this._observe(this.element, 'keydown', this.onKeyPress);
+    var event = Prototype.Browser.Opera ? 'keypress' : 'keydown';
+    this._observe(this.element, event, this.onKeyPress);
   },
 
   // Call this when you don't need the autocompleter anymore to remove
@@ -139,6 +140,8 @@ Autocompleter.Base = Class.create({
   },
 
   hide: function() {
+    if(this.observer) clearTimeout(this.observer);
+
     this.stopIndicator();
     this._disposeListEventHandlers();
     if(Element.getStyle(this.update, 'display')!='none') this.options.onHide(this.element, this.update);
@@ -263,6 +266,7 @@ Autocompleter.Base = Class.create({
 
   selectEntry: function() {
     this.active = false;
+    this.onObserverEvent();
     this.updateElement(this.getCurrentEntry());
   },
 
@@ -315,7 +319,9 @@ Autocompleter.Base = Class.create({
       }
 
       this.stopIndicator();
-      this.index = 0;
+      if (this.index >= this.entryCount) {
+        this.index = 0;
+      }
 
       if(this.entryCount==1 && this.options.autoSelect) {
         this.selectEntry();
